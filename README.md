@@ -25,6 +25,26 @@ Endpoints
 - `GET /graph/state/{run_id}` - fetch current state and logs of a run.
 - `WS /ws/{run_id}` - optional websocket to stream logs/state.
 
+WebSocket streaming and logging
+
+- The server now supports push-based WebSocket streaming for runs. Connect to `ws://127.0.0.1:<port>/ws/{run_id}` to receive step-by-step events (JSON) while a run executes. Events look like:
+
+```json
+{
+	"type": "step",
+	"run_id": "...",
+	"node": "extract",
+	"state": { /* current state snapshot */ },
+	"log": "[RUNNING] extract",
+	"status": "running"
+}
+```
+
+- If the server can't create a push queue at run time, the websocket endpoint automatically falls back to polling snapshots of the run state.
+- The server emits structured logging to the console; enable file logging by piping stdout or extending the logging config in `app/main.py`.
+
+Port note: if you run the server on a different port (e.g. `8001`) use that port for REST and WS endpoints, for example `http://127.0.0.1:8001/graph/create` and `ws://127.0.0.1:8001/ws/{run_id}`.
+
 What it supports
 
 - Nodes as Python functions (sync or async) that accept and modify a `state` dict.
