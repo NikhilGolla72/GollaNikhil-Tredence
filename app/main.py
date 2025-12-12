@@ -1,10 +1,15 @@
 import asyncio
 import uuid
+import logging
 from fastapi import FastAPI, HTTPException, WebSocket
 from pydantic import BaseModel
 from typing import Dict, Any
 
 from app.engine import GraphEngine
+
+# configure logging for the app
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 from app.tools import (
     extract_functions,
     check_complexity,
@@ -100,14 +105,32 @@ async def get_state(run_id: str):
 @app.websocket("/ws/{run_id}")
 async def websocket_stream(websocket: WebSocket, run_id: str):
     await websocket.accept()
-    # naive: stream latest logs for the run periodically
+    # Prefer push-based streaming using the run's queue when available.
     try:
-        while True:
-            run = engine.get_run(run_id)
-            if run:
-                await websocket.send_json({"state": run.get("state"), "status": run.get("status"), "log": run.get("log")})
-                if run.get("status") in ("completed", "failed"):
+        run = engine.get_run(run_id)
+        if run and run.get("queue"):
+            queue = run.get("queue")
+            # consume events until run completes
+            while True:
+                try:
+                    event = await queue.get()
+                except asyncio.CancelledError:
                     break
-            await asyncio.sleep(0.5)
+                # send event to websocket
+                await websocket.send_json(event)
+                # if run status finished, break
+                current_run = engine.get_run(run_id)
+                if current_run and current_run.get("status") in ("completed", "failed"):
+                    break
+        else:
+            # fallback: poll run state periodically
+            while True:
+                run = engine.get_run(run_id)
+                if run:
+                    await websocket.send_json({"state": run.get("state"), "status": run.get("status"), "log": run.get("log")})
+                    if run.get("status") in ("completed", "failed"):
+                        break
+                await asyncio.sleep(0.5)
     except Exception:
+        logger.exception("WebSocket stream error for run %s", run_id)
         await websocket.close()

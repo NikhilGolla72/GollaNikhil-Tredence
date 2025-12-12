@@ -1,6 +1,9 @@
 import asyncio
 import uuid
+import logging
 from typing import Callable, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class GraphEngine:
@@ -30,8 +33,10 @@ class GraphEngine:
         fn = self.node_registry.get(node_name)
         if fn is None:
             run["log"].append(f"[ERROR] Node '{node_name}' not found")
+            logger.error("Node '%s' not found", node_name)
             return None
         run["log"].append(f"[RUNNING] {node_name}")
+        logger.info("Running node %s for run %s", node_name, run.get("id"))
         try:
             if asyncio.iscoroutinefunction(fn):
                 out = await fn(state)
@@ -39,6 +44,7 @@ class GraphEngine:
                 out = fn(state)
         except Exception as e:
             run["log"].append(f"[EXCEPTION] {node_name}: {e}")
+            logger.exception("Exception in node %s: %s", node_name, e)
             raise
 
         # merge state
@@ -69,6 +75,9 @@ class GraphEngine:
             "status": "running",
             "log": [],
         }
+        # attach the optional run_queue so external consumers (websockets) can stream events
+        run["queue"] = run_queue
+        logger.info("Created run %s for graph %s", run_id, graph_id)
         self.runs[run_id] = run
 
         start_node = graph.get("start")
@@ -83,9 +92,19 @@ class GraphEngine:
                 # allow external streaming
                 run["current_node"] = current
                 next_node = await self._run_node(current, run["state"], run)
-                # stream log if queue
+                # stream log/state event if queue provided
                 if run_queue is not None:
-                    await run_queue.put({"run_id": run_id, "state": run["state"], "log": run["log"][-1]})
+                    try:
+                        await run_queue.put({
+                            "type": "step",
+                            "run_id": run_id,
+                            "node": current,
+                            "state": dict(run["state"]),
+                            "log": run["log"][-1],
+                            "status": run["status"],
+                        })
+                    except Exception:
+                        logger.exception("Failed to push to run queue for run %s", run_id)
                 # if node returned explicit next
                 if next_node:
                     current = next_node

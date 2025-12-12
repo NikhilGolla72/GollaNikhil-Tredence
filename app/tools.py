@@ -1,4 +1,7 @@
+import logging
 from typing import Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 def extract_functions(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -11,6 +14,7 @@ def extract_functions(state: Dict[str, Any]) -> Dict[str, Any]:
             name = part.split("(")[0].strip()
             funcs.append(name)
     state_update = {"functions": funcs}
+    logger.info("Extracted %d functions", len(funcs))
     return state_update
 
 
@@ -20,6 +24,7 @@ def check_complexity(state: Dict[str, Any]) -> Dict[str, Any]:
     funcs = state.get("functions", [])
     complexities = {f: 1 + code.count('\n') // max(1, len(funcs)) for f in funcs}
     state_update = {"complexities": complexities}
+    logger.info("Computed complexities for %d functions", len(complexities))
     return state_update
 
 
@@ -33,6 +38,7 @@ def detect_issues(state: Dict[str, Any]) -> Dict[str, Any]:
         if len(line) > 120:
             issues.append({"line": i, "type": "long-line", "text": line.strip()})
     state_update = {"issues": issues, "issues_count": len(issues)}
+    logger.info("Detected %d issues", len(issues))
     return state_update
 
 
@@ -47,4 +53,5 @@ def suggest_improvements(state: Dict[str, Any]) -> Dict[str, Any]:
     # compute a simple quality score
     issues_count = state.get("issues_count", 0)
     quality_score = max(0, 100 - issues_count * 10)
+    logger.info("Generated %d suggestions, quality_score=%s", len(suggestions), quality_score)
     return {"suggestions": suggestions, "quality_score": quality_score}
