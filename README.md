@@ -72,3 +72,14 @@ What I'd improve with more time
 Notes
 
 - The sample workflow is intentionally rule-based and small; this submission focuses on clarity and structure.
+Screenshots:
+
+<img width="987" height="731" alt="Screenshot 2025-12-12 115303" src="https://github.com/user-attachments/assets/016b9dd1-4fd0-4727-b812-e66529a4b3fb" />
+<img width="993" height="692" alt="Screenshot 2025-12-12 115350" src="https://github.com/user-attachments/assets/9e02a1ad-fcd9-4681-99df-09cd17944897" />
+<img width="1428" height="917" alt="Screenshot 2025-12-12 115426" src="https://github.com/user-attachments/assets/85aa3d18-bf78-4786-ba93-1f7d6e85b2ec" />
+<img width="880" height="459" alt="Screenshot 2025-12-12 121941" src="https://github.com/user-attachments/assets/80d209ff-0baf-462b-940c-db98c9468638" />
+<img width="1088" height="409" alt="image" src="https://github.com/user-attachments/assets/5eedb96e-1e81-4dcc-95d3-39a2ebd4e80e" />
+
+
+
+
